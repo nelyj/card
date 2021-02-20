@@ -90,10 +90,11 @@ class Card
       name: 'Full Name'
     masks:
       cardNumber: false
+      cardCVC: false
     classes:
       valid: 'jp-card-valid'
       invalid: 'jp-card-invalid'
-    debug: false
+    debug: true
 
   constructor: (opts) ->
     @options = extend(true, @defaults, opts)
@@ -175,7 +176,10 @@ class Card
           if text[0].length == 2 or text[1] then "/" else ""
         filters: expiryFilters
 
-    bindVal @$cvcInput, @$cvcDisplay, filters: @validToggler('cardCVC')
+    numberInputFilters = [@validToggler('cardCVC')]
+    numberInputFilters.push(@maskCardCVC) if @options.masks.cardCVC
+
+    bindVal @$cvcInput, @$cvcDisplay, filters: numberInputFilters
     QJ.on @$cvcInput, 'focus', @handle('flipCard')
     QJ.on @$cvcInput, 'blur', @handle('unflipCard')
 
@@ -205,7 +209,7 @@ class Card
     if validatorName == "cardExpiry"
       isValid = (val) ->
         objVal = Payment.fns.cardExpiryVal val
-        Payment.fns.validateCardExpiry objVal.month, objVal.year
+        res = Payment.fns.validateCardExpiry objVal.month, objVal.year
     else if validatorName == "cardCVC"
       isValid = (val) => Payment.fns.validateCardCVC val, @cardType
     else if validatorName == "cardNumber"
@@ -224,6 +228,18 @@ class Card
 
   maskCardNumber: (val, el, out) =>
     mask = @options.masks.cardNumber
+    numbers = val.split(' ')
+
+    if numbers.length >= 3
+      numbers.forEach (item, idx) ->
+        numbers[idx] = numbers[idx].replace(/\d/g, mask) unless idx == numbers.length - 1
+      numbers.join(' ')
+
+    else
+      val.replace /\d/g, mask
+
+  maskCardCVC: (val, el, out) =>
+    mask = @options.masks.cardCVC
     numbers = val.split(' ')
 
     if numbers.length >= 3
